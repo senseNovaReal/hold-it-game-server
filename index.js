@@ -20,6 +20,8 @@ app.use('/leaderboard', (req, res, next) => {
 app.use('/leaderboard', leaderBoardRoutes);
 
 // Start server
-app.listen(3000, () => {
-  console.log('Server running on http://localhost:3000');
+const PORT = process.env.PORT || 3000; // Use Render-assigned port if available
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
+
