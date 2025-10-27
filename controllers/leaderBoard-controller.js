@@ -1,44 +1,29 @@
 import firebaseApp from '../firebaseConfig.js';
 import { collection, getFirestore, getDoc, getDocs, doc, setDoc, updateDoc, limit, orderBy, query } from 'firebase/firestore';
+import { scoreBuffer } from '../scheduler.js';
 
 const db = getFirestore(firebaseApp);
 const coll = collection(db, 'leaderboard');
 
-export const addScore = async (req, res) => {
-    const { deviceId, deviceName, name, score, countryName, countryCode, avatarUrl, } = req.body;
+export const addScore = (req, res) => {
+  const { deviceId, deviceName, name, score, countryCode, avatarUrl } = req.body;
 
-    const newDoc = {
-        deviceId: deviceId,
-        deviceName: deviceName,
-        name: name,
-        score: score,
-        countryName: countryName,
-        countryCode: countryCode,
-        avatarUrl: avatarUrl,
-        updatedAt: Date.now(),
-    };
+  console.log('addScore',deviceId, deviceName, name, score, countryCode, avatarUrl)
 
-    try {
-        const docRef = doc(coll, deviceId);
-        const docSnap = await getDoc(docRef);
+  if (!deviceId) return res.status(400).json({ message: "deviceId is required" });
 
-        if (docSnap.exists()) {
-            await updateDoc(docRef, {
-                ...newDoc,
-                updatedAt: Date.now(),
-            });
-        } else {
-            await setDoc(docRef, {
-                ...newDoc,
-                createdAt: Date.now(),
-            });
-        }
+  // Store latest score in memory buffer
+  scoreBuffer[deviceId] = {
+    deviceId,
+    deviceName,
+    name,
+    score,
+    countryCode,
+    avatarUrl,
+    updatedAt: Date.now(),
+  };
 
-        res.status(200).json({ message: 'Score added successfully' });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Internal server error' });
-    }
+  res.status(200).json({ message: "Score received. Will be saved at 11 PM." });
 };
 
 // get all scores
@@ -59,7 +44,7 @@ export const getAllScores = async (req, res) => {
     const scores = querySnapshot.docs.map(doc => ({
         name: doc.data().name,
         score: doc.data().score,
-        countryName: doc.data().countryName,
+        deviceName: doc.data().deviceName,
         countryCode: doc.data().countryCode,
         avatarUrl: doc.data().avatarUrl,
     }
